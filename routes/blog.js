@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 
 router.get("/posts", async (req, res) => {
   const [posts] = await db.query(
-    `SELECT posts.title, posts.summary, authors.name 
+    `SELECT posts.*, authors.name 
     FROM posts INNER JOIN authors ON posts.author_id = authors.id`
   );
 
@@ -35,6 +35,31 @@ router.post("/posts", async (req, res) => {
     [data]
   );
   res.redirect("/posts");
+});
+
+router.get("/posts/:id", async (req, res) => {
+  const query = `
+    SELECT posts.*, authors.name, authors.email FROM posts
+    INNER JOIN authors ON posts.author_id = authors.id
+    WHERE posts.id = ?
+    `
+  const [posts] = await db.query(query, [req.params.id])
+  if (!posts || posts.length === 0) {
+    return res.status(404).render("404");
+  }
+
+  const postData = {
+    ...posts[0],
+    date: posts[0].date.toISOString(),
+    humanReadableDate: posts[0].date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+      }),
+  }
+
+  res.render("post-detail", { post: postData });
 });
 
 module.exports = router;
